@@ -26,15 +26,14 @@ int main()
 
 	WFTimerTask *a = WFTaskFactory::create_timer_task(1, [](WFTimerTask *task) {
 		printf("task a finish\n");
-    });
+	});
 
 	WFTimerTask *b = WFTaskFactory::create_timer_task(1, [](WFTimerTask *task) {
 		printf("task b finish\n");
-    });
+	});
 
 	dag->add_edge(a, b);
 	dag->start();
 	wait_group.wait();
-	pause();
 	return 0;
 }
