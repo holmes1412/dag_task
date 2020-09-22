@@ -24,7 +24,7 @@ class DAGTask : public WFGenericTask
 using preparation_t = std::function<void (SubTask *src, T *ctx)>;
 
 public:
-	void add_edge(SubTask *src, SubTask *dst);
+	bool add_edge(SubTask *src, SubTask *dst);
 	void add_preparation(SubTask *src, preparation_t preparation);
 
 	void set_ctx(T *ctx) { this->ctx = ctx; }
@@ -56,9 +56,15 @@ private:
 };
 
 template<typename T>
-void DAGTask<T>::add_edge(SubTask *src, SubTask *dst)
+bool DAGTask<T>::add_edge(SubTask *src, SubTask *dst)
 {
 	printf("add edge from task %p to task %p\n", src, dst);
+	if (series_of(src) || series_of(dst))
+	{
+		printf("add edge failed\n");
+		return false;
+	}
+
 	std::unordered_map<SubTask *, int>::iterator in_iter;
 	std::unordered_map<SubTask *, std::vector<SubTask *>>::iterator edge_iter;
 
@@ -78,7 +84,7 @@ void DAGTask<T>::add_edge(SubTask *src, SubTask *dst)
 		if (edge_iter == this->edge_map.end())
 		{
 			this->state = WFT_STATE_SYS_ERROR;
-			return;
+			return false;
 		}
 		edge_iter->second.push_back(dst);
 	}
@@ -89,6 +95,8 @@ void DAGTask<T>::add_edge(SubTask *src, SubTask *dst)
 		this->in_count.insert(std::make_pair(dst, 1));
 	else
 		in_iter->second++;
+
+	return true;
 }
 
 template<typename T>
@@ -130,6 +138,11 @@ void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 		if (p_iter != this->preparation_map.end())
 			p_iter->second(con_iter->second, this->ctx);
 
+		if (series_of(con_iter->second) == NULL)
+			printf("series of container NULL\n");
+		else
+			printf("series of container not NULL\n");
+
 		// 3. start
 		series_of(con_iter->second)->start();
 		//delete task;
@@ -137,6 +150,11 @@ void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 	else // this is the end container
 	{
 		printf("container %p reach end\n", this);
+		if (series_of(this->end_container) == NULL)
+			printf("series of end_container NULL\n");
+		else
+			printf("series of end_container not NULL\n");
+
 		this->end_container = NULL;
 		if (this->dag_cb)
 			this->dag_cb(this);
@@ -204,6 +222,14 @@ void DAGTask<T>::dispatch()
 		src = queue.front();
 		printf("queue.size=%zu get task %p\n", queue.size(), src);
 		queue.pop();
+
+		if (series_of(src))
+		{
+			printf("ERROR. task %p already in series\n");
+			this->subtask_done();
+			return;
+		}
+
 		series = Workflow::create_series_work(src,
 											  std::bind(&DAGTask::series_callback,
 											  this, std::placeholders::_1));
@@ -245,7 +271,7 @@ void DAGTask<T>::dispatch()
 	this->end_vector.push_back(this->end_container);
 	for (int i = 0; i < out_count.size(); i++)
 	{
-		printf("make task %p link to end_contaner %p\n",
+		printf("make task %p link to end_container %p\n",
 				out_count[i], this->end_container);
 		series_of(out_count[i])->set_context(&this->end_vector);
 	}

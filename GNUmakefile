@@ -8,11 +8,14 @@ all: info dag_demo
 
 info:
 ifeq ("${Workflow_DIR}workflow", "workflow")
-	@echo "Please set \"Workflow_DIR\" to make example."
+	@echo "Please set \"Workflow_DIR\" to make dag_demo."
 	exit 1
 endif
 
 dag_demo:
 	g++ -o dag_demo dag_demo.cc \
 		-g -O0 --std=c++11 $(includes) $(libs) \
-		-lworkflow --std=c++11 -lpthread -lcrypto -lssl
+		-lworkflow -lpthread -lcrypto -lssl
+
+clean:
+	rm -f dag_demo
