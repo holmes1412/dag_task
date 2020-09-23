@@ -71,21 +71,17 @@ bool DAGTask<T>::add_edge(SubTask *src, SubTask *dst)
 	// 1. update everything use src as index
 	in_iter = this->in_count.find(src);
 	if (in_iter == this->in_count.end())
-	{
 		this->in_count.insert(std::make_pair(src, 0));
+	
+	edge_iter = this->edge_map.find(src);
+	if (edge_iter == this->edge_map.end())
+	{
 		std::vector<SubTask *> dst_nodes;
 		dst_nodes.push_back(dst);
 		this->edge_map.insert(std::make_pair(src, std::move(dst_nodes)));
 	}
 	else
 	{
-		in_iter->second++;
-		edge_iter = this->edge_map.find(src);
-		if (edge_iter == this->edge_map.end())
-		{
-			this->state = WFT_STATE_SYS_ERROR;
-			return false;
-		}
 		edge_iter->second.push_back(dst);
 	}
 
@@ -125,7 +121,6 @@ void DAGTask<T>::series_callback(const SeriesWork *series)
 template<typename T>
 void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 {
-	printf("container %p callback() series=%p\n", task, series_of(task));
 	// 1. find next_task
 	const auto con_iter = this->container_next.find(task);
 
@@ -150,7 +145,6 @@ void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 		if (this->dag_cb)
 			this->dag_cb(this);
 
-		//delete task;
 		delete this;
 	}
 }
@@ -168,7 +162,7 @@ void DAGTask<T>::dispatch()
 	std::unordered_map<SubTask *, bool> check_map;
 	std::queue<SubTask *> queue;
 
-	printf("check in_count. size = %zu\n", this->in_count.size());
+	printf("\n[CHECK EDGE]\ncheck in_count. size = %zu\n", this->in_count.size());
 	for (const auto &kv : this->in_count)
 	{
 		// 1. prepare for queue
@@ -208,6 +202,7 @@ void DAGTask<T>::dispatch()
 	SeriesWork *series;
 	std::vector<SubTask *> out_count;
 
+	printf("\n[CHECK QUEUE]\n");
 	// 3. deal with each src node
 	while (queue.size())
 	{
@@ -226,7 +221,6 @@ void DAGTask<T>::dispatch()
 											  std::bind(&DAGTask::series_callback,
 											  this, std::placeholders::_1));
 
-		printf("create series-%p\n", series);
 		// deal with each edge
 		edge_iter = this->edge_map.find(src);
 		if (edge_iter != this->edge_map.end())
@@ -238,11 +232,12 @@ void DAGTask<T>::dispatch()
 				if (check_map[dst] == true)
 				{
 					// TODO: check cycles
-					continue;
 				}
-
-				queue.push(dst);
-				check_map[dst] = true;
+				else
+				{
+					queue.push(dst);
+					check_map[dst] = true;
+				}
 
 				// change dst into dst->container
 				dst = edge_iter->second[i];
@@ -258,6 +253,7 @@ void DAGTask<T>::dispatch()
 	}
 
 	// 4. make my end_container
+	printf("\n[ADD END CONTAINER]\n");
 	this->end_container = new WFContainerTask<T>(out_count.size(),
 												 std::move(std::bind(&DAGTask::container_callback,
 									   			 this, std::placeholders::_1)));
@@ -269,6 +265,7 @@ void DAGTask<T>::dispatch()
 				out_count[i], this->end_container);
 		series_of(out_count[i])->set_context(&this->end_vector);
 	}
+	printf("\n[DISPATCH ALL]\n");
 
 	// 5. start nodes
 	for (const auto &kv : this->in_count)
