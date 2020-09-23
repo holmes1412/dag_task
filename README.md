@@ -2,10 +2,10 @@
 
 由于workflow的series和parallel基本可以解决串行和并行的任务流图问题，对于多入边依赖的任务，workflow提供了[WFContainerTask](https://github.com/sogou/workflow/blob/master/src/factory/WFContainerTask.h)。workflow的任务而开发的单进程DAG任务，目标是帮助用户把一些通过workflow创建的任务按照业务逻辑，组织构建成一个DAG业务流图并按任务依赖关系来执行。
 
-#### 代码
+### 代码
 具体实现可以查看[dag_task.h](dag_task.h)，用例可以查看[dag_demo.cc](dag_demo.cc)。
 
-#### 编译
+### 编译
 首先workflow对于WFContainerTask.h没有挪到外部用，我们需要先到workflow的目录下打个patch，并重新编译：
 ~~~shell
 cd ${WORKFLOW_DIR}
@@ -18,7 +18,7 @@ make
 make Workflow_DIR=/search/ted/1412/workflow_1412
 ~~~
 
-#### 示例
+### 示例
 我们以``dag_demo.cc``为例。
 
 这个例子是构建一个a、b、c、d的菱形DAG。其中四个节点可以是任意一种任务，我们这里为了方便，用了``WFTimerTask``。
