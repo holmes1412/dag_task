@@ -116,8 +116,8 @@ void DAGTask<T>::series_callback(const SeriesWork *series)
 			(std::vector<WFContainerTask<T> *> *)series->get_context();
 	for (int i = 0; i < dst_containers->size(); i++)
 	{
-		printf("sereis callback. will push to next container:%p\n",
-				(*dst_containers)[i]);
+		printf("sereis-%p callback. will push to next container:%p\n",
+				series, (*dst_containers)[i]);
 		(*dst_containers)[i]->push_empty();
 	}
 }
@@ -125,7 +125,7 @@ void DAGTask<T>::series_callback(const SeriesWork *series)
 template<typename T>
 void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 {
-	printf("container %p callback()\n", task);
+	printf("container %p callback() series=%p\n", task, series_of(task));
 	// 1. find next_task
 	const auto con_iter = this->container_next.find(task);
 
@@ -138,22 +138,13 @@ void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 		if (p_iter != this->preparation_map.end())
 			p_iter->second(con_iter->second, this->ctx);
 
-		if (series_of(con_iter->second) == NULL)
-			printf("series of container NULL\n");
-		else
-			printf("series of container not NULL\n");
-
 		// 3. start
 		series_of(con_iter->second)->start();
 		//delete task;
 	}
 	else // this is the end container
 	{
-		printf("container %p reach end\n", this);
-		if (series_of(this->end_container) == NULL)
-			printf("series of end_container NULL\n");
-		else
-			printf("series of end_container not NULL\n");
+		printf("container %p reach end\n", this->end_container);
 
 		this->end_container = NULL;
 		if (this->dag_cb)
@@ -191,10 +182,11 @@ void DAGTask<T>::dispatch()
 			check_map.insert(std::make_pair(kv.first, false));
 			// 2. make container
 			WFContainerTask<T> *c = new WFContainerTask<T>(
-										kv.second - 1,
+										kv.second,
 										std::move(std::bind(&DAGTask::container_callback,
 									   				   		this, std::placeholders::_1))
 										);
+			Workflow::start_series_work(c, nullptr);
 			this->container_next.insert(std::make_pair(c, kv.first));
 			container_map.insert(std::make_pair(kv.first, c));
 			printf("task %p in_count=%d container of this is: %p\n", kv.first, kv.second, c);
@@ -234,6 +226,7 @@ void DAGTask<T>::dispatch()
 											  std::bind(&DAGTask::series_callback,
 											  this, std::placeholders::_1));
 
+		printf("create series-%p\n", series);
 		// deal with each edge
 		edge_iter = this->edge_map.find(src);
 		if (edge_iter != this->edge_map.end())
@@ -265,9 +258,10 @@ void DAGTask<T>::dispatch()
 	}
 
 	// 4. make my end_container
-	this->end_container = new WFContainerTask<T>(out_count.size() - 1,
+	this->end_container = new WFContainerTask<T>(out_count.size(),
 												 std::move(std::bind(&DAGTask::container_callback,
 									   			 this, std::placeholders::_1)));
+	Workflow::start_series_work(this->end_container, nullptr);
 	this->end_vector.push_back(this->end_container);
 	for (int i = 0; i < out_count.size(); i++)
 	{
