@@ -6,8 +6,10 @@
 
 struct my_ctx
 {
-	std::vector<int> data;
-	int n;
+	int a;
+	int b;
+	int c;
+	int d;
 };
 
 static WFFacilities::WaitGroup wait_group(1);
@@ -19,7 +21,7 @@ void callback(DAGTask<int> task)
 
 int main()
 {
-	DAGTask<int> *dag = new DAGTask<int>([](DAGTask<int> *task) {
+	DAGTask<my_ctx> *dag = new DAGTask<my_ctx>([](DAGTask<my_ctx> *task) {
 		printf("==> dag finish\n");
 		wait_group.done();
 	});
@@ -44,6 +46,9 @@ int main()
 	dag->add_edge(a, c);
 	dag->add_edge(b, d);
 	dag->add_edge(c, d);
+
+	struct my_ctx ctx;
+	dag->set_ctx(&ctx);
 
 	dag->start();
 	wait_group.wait();
