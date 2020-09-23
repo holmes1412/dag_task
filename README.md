@@ -1,6 +1,6 @@
 # dag_task
 
-由于workflow的series和parallel基本可以解决串行和并行的任务流图问题，对于多入边依赖的任务，workflow提供了[WFContainerTask](https://github.com/sogou/workflow/blob/master/src/factory/WFContainerTask.h)。workflow的任务而开发的单进程DAG任务，目标是帮助用户把一些通过workflow创建的任务按照业务逻辑，组织构建成一个DAG业务流图并按任务依赖关系来执行。
+由于workflow的series和parallel基本可以解决串行和并行的任务流图问题，对于多入边依赖的任务，workflow提供了[WFContainerTask](https://github.com/sogou/workflow/blob/master/src/factory/WFContainerTask.h)。所以dag_task是利用了``WFContainerTask``，为workflow的任务而开发的单进程DAG任务，目标是帮助用户把一些通过workflow创建的任务按照业务逻辑，组织构建成一个DAG业务流图并按任务依赖关系来执行。
 
 ### 代码
 具体实现可以查看[dag_task.h](dag_task.h)，用例可以查看[dag_demo.cc](dag_demo.cc)。
