@@ -13,7 +13,7 @@ patch -p 1 < ${DAG_TASK_DIR}/patch.1
 make
 ~~~
 
-然后我们回到da_task的目录，编译时需要指定workflow的依赖路径，比如：
+然后我们回到dag_task的目录，编译时需要指定workflow的依赖路径，比如：
 ~~~shell
 make Workflow_DIR=/search/ted/1412/workflow_1412
 ~~~

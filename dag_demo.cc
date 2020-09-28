@@ -19,10 +19,30 @@ void callback(DAGTask<int> task)
 	wait_group.done();
 }
 
+void prepare_a(SubTask *src, my_ctx *ctx)
+{
+	ctx->a = 1;
+}
+
+void prepare_b(SubTask *src, my_ctx *ctx)
+{
+	ctx->b = ctx->a + 1;
+}
+
+void prepare_c(SubTask *src, my_ctx *ctx)
+{
+	ctx->c = ctx->a + 2;
+}
+
+void prepare_d(SubTask *src, my_ctx *ctx)
+{
+	ctx->d = ctx->b + ctx->c;
+}
+
 int main()
 {
 	DAGTask<my_ctx> *dag = new DAGTask<my_ctx>([](DAGTask<my_ctx> *task) {
-		printf("==> dag finish\n");
+		printf("==> dag finish. d = %d\n", task->get_ctx()->d);
 		wait_group.done();
 	});
 
@@ -46,6 +66,11 @@ int main()
 	dag->add_edge(a, c);
 	dag->add_edge(b, d);
 	dag->add_edge(c, d);
+
+	dag->add_preparation(a, prepare_a);
+	dag->add_preparation(b, prepare_b);
+	dag->add_preparation(c, prepare_c);
+	dag->add_preparation(d, prepare_d);
 
 	struct my_ctx ctx;
 	dag->set_ctx(&ctx);

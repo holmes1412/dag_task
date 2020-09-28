@@ -28,6 +28,7 @@ public:
 	void add_preparation(SubTask *src, preparation_t preparation);
 
 	void set_ctx(T *ctx) { this->ctx = ctx; }
+	const T* get_ctx() const { return this->ctx; }
 
 	DAGTask(std::function<void (DAGTask *)>&& callback) :
 		dag_cb(std::move(callback)),
@@ -99,7 +100,7 @@ template<typename T>
 void DAGTask<T>::add_preparation(SubTask *src, preparation_t preparation)
 {
 	const auto p_iter = this->preparation_map.find(src);
-	if (p_iter == this->preparation_map.c_end())
+	if (p_iter == this->preparation_map.cend())
 		this->preparation_map.insert(std::make_pair(src, std::move(preparation)));
 	else
 		p_iter->second = std::move(preparation);
@@ -129,7 +130,7 @@ void DAGTask<T>::container_callback(WFContainerTask<T> *task)
 		printf("container %p find next task %p and start\n",
 				task, con_iter->second);
 		// 2. find next_task->prepare
-		const auto p_iter = this->preparation_map.find(task);
+		const auto p_iter = this->preparation_map.find(con_iter->second);
 		if (p_iter != this->preparation_map.end())
 			p_iter->second(con_iter->second, this->ctx);
 
@@ -271,7 +272,12 @@ void DAGTask<T>::dispatch()
 	for (const auto &kv : this->in_count)
 	{
 		if (kv.second == 0)
+		{
+			const auto p_iter = this->preparation_map.find(kv.first);
+			if (p_iter != this->preparation_map.end())
+				p_iter->second(kv.first, this->ctx);
 			series_of(kv.first)->start();
+		}
 	}
 
 	this->subtask_done();	
