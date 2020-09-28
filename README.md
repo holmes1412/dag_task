@@ -15,19 +15,21 @@ make
 
 然后我们回到dag_task的目录，编译时需要指定workflow的依赖路径，比如：
 ~~~shell
+cd ${DAG_TASK_DIR}
 make Workflow_DIR=/search/ted/1412/workflow_1412
 ~~~
 
 ### 示例
 我们以``dag_demo.cc``为例：
 
-<img src="/images/dag_task.png" width = "600" height = "500" alt="dag_task" align=center />
+<img src="/images/dag_task.png" width = "500" height = "400" alt="dag_task" align=center />
 
 这个例子是构建一个a、b、c、d的DAG。其中四个节点可以是任意一种任务，我们这里为了方便，用了``WFTimerTask``。
 
 因为DAGTask需要承载一些数据，所以整个DAG的数据是它的模版，也就是例子中的``my_ctx``。
 
 我们需要做的事情是：
+
 1. 准备好各个节点，比如a、b、c、d，节点可以从Workflow现有的协议创建，或者是自己的算法task；
 ~~~cpp
     WFTimerTask *a = WFTaskFactory::create_timer_task(1000000, task_a_callback);
@@ -36,7 +38,7 @@ make Workflow_DIR=/search/ted/1412/workflow_1412
 
 2. 创建一个DAGTask，可以传入回调函数，用法与workflow其他task一致；
 ~~~cpp
-    DAGTask<my_ctx> *dag = new DAGTask<my_ctx>(dag_task_callback);:
+    DAGTask<my_ctx> *dag = new DAGTask<my_ctx>(dag_task_callback);
 ~~~
 
 3. 通过DAGTask的接口``bool add_edge(SubTask *src, SubTask *dst)``把a、b、c、d逻辑依赖加上，也就是DAG的边。
@@ -66,7 +68,10 @@ make Workflow_DIR=/search/ted/1412/workflow_1412
 
 7. 由于是异步任务，记得等回来之后再退出进程，所以我们的例子里用了一个``WFFacilities::WaitGroup``来卡住，并且在``dag_task_callback``中``done()``以示结束。
 
-最后补充说明，例子里是计算：
+
+最后。
+
+补充说明，例子里是计算：
 
     a = 1; b = a + 1; c = a + 2; d = b + c;
 
